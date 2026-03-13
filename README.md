@@ -263,7 +263,7 @@ npm run dev
 
 Feel free to reach out if you want to collaborate, extend this project, or hire me for an AI-driven initiative.
 
-**Built with ❤️ by \Utkarsh Pratap Singh**
+**Built with ❤️ by Anmol Madhav**
 
 ---
 
