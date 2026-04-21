@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 
 # Connect to MongoDB
-client = MongoClient("mongodb+srv://utkarshthakur0110:thakur@cluster0.vfyftff.mongodb.net/portfolio-db?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient("mongodb+srv://anmolmadhav0954:madhav@cluster0.vfyftff.mongodb.net/portfolio-db?retryWrites=true&w=majority&appName=Cluster0")
 
 # Select your database and collection
 db = client["portfolio-db"]
