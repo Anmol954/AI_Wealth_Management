@@ -2,6 +2,7 @@ import re
 from db.mysql_handler import mysql_connection
 from db.mongo_handler import get_mongo_collection
 from chains.mongo_query import query_mongo  # assumes this is working
+from utils.sql_runner import serialize_rows
 
 def route_query(question: str):
     question_lower = question.lower().strip()
@@ -16,7 +17,7 @@ def route_query(question: str):
             GROUP BY t.client_id, rm.manager_name
             ORDER BY total_value DESC
         """)
-        rows = cursor.fetchall()
+        rows = serialize_rows(cursor.fetchall())
         headers = [col[0] for col in cursor.description]
         cursor.close()
         return headers, rows
@@ -33,7 +34,7 @@ def route_query(question: str):
             WHERE client_id = %s
             ORDER BY date DESC
         """, (client_id,))
-        rows = cursor.fetchall()
+        rows = serialize_rows(cursor.fetchall())
         headers = [col[0] for col in cursor.description]
         cursor.close()
         return headers, rows
@@ -49,7 +50,7 @@ def route_query(question: str):
             WHERE stock_name = %s
             ORDER BY value DESC
         """, (stock,))
-        rows = cursor.fetchall()
+        rows = serialize_rows(cursor.fetchall())
         headers = [col[0] for col in cursor.description]
         cursor.close()
         return headers, rows
@@ -64,7 +65,7 @@ def route_query(question: str):
             ORDER BY unique_stocks DESC
             LIMIT 5
         """)
-        rows = cursor.fetchall()
+        rows = serialize_rows(cursor.fetchall())
         headers = [col[0] for col in cursor.description]
         cursor.close()
         return headers, rows
@@ -79,7 +80,7 @@ def route_query(question: str):
             ORDER BY total_value DESC
             LIMIT 5
         """)
-        rows = cursor.fetchall()
+        rows = serialize_rows(cursor.fetchall())
         headers = [col[0] for col in cursor.description]
         cursor.close()
         return headers, rows
