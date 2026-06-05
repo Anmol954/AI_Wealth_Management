@@ -10,33 +10,35 @@ Designed for **relationship managers handling high-net-worth individuals** (film
 
 ## 🧠 Core Technologies
 
-| Layer       | Tech Stack                                    |
-| ----------- | --------------------------------------------- |
-| Frontend    | React.js, Recharts                            |
-| Backend     | FastAPI (Python), LangChain, LangGraph        |
-| LLM + RAG   | Gemini 1.5 Flash, LangChain                   |
-| Databases   | MySQL, MongoDB Atlas                          |
-| Graph API   | QuickChart.io                                 |
-| Storage     | LocalStorage (for frontend history)           |
-| Voice Input | Web Speech API                                |
+| Layer        | Tech Stack                                        |
+| ------------ | ------------------------------------------------- |
+| Frontend     | React.js (Vite), Recharts, TailwindCSS            |
+| Backend      | FastAPI (Python), LangChain, LangGraph            |
+| LLM          | Gemini 3.5 Flash (`gemini-3.5-flash`), LangChain  |
+| Databases    | MySQL 8.0, MongoDB Atlas                          |
+| Graph API    | QuickChart.io                                     |
+| Storage      | LocalStorage (for frontend query history)         |
+| Voice Input  | Web Speech API                                    |
 
 ---
 
-## 🌐 Live Features (User-Visible)
+## 🌐 Live Features
 
 ### 🔍 Natural Language Query (NLQ)
 
-Users can ask:
+Users can ask questions like:
 
-* “Top 5 clients by portfolio value”
-* “Which clients hold Infosys stock?”
-* “Who manages the highest portfolio?”
+* `"Top 5 clients by portfolio value"`
+* `"Which clients hold Infosys stock?"`
+* `"Who manages the highest portfolio?"`
+* `"Clients with high risk appetite"`
+* `"Clients from Mumbai"`
 
 ✨ Gemini generates:
 
 * A financial **summary**
 * A structured **table**
-* A relevant **graph** (bar, pie, line, etc.)
+* A relevant **graph** (bar, pie, line, doughnut)
 
 ---
 
@@ -44,8 +46,8 @@ Users can ask:
 
 Navigate to `/insights` to view:
 
-* 🔹 **3 Historical Charts** (from LocalStorage recently added data): Top clients & stocks
-* 🔸 **3 LLM-based Charts** (from AI-generated insights)
+* 🔹 **Historical Charts** — Top clients & top stocks by portfolio value
+* 🔸 **LLM-based Charts** — AI-generated insights from Gemini (cached to minimize API calls)
 
 ---
 
@@ -53,7 +55,7 @@ Navigate to `/insights` to view:
 
 Press the mic icon and speak your query.
 
-* Converts voice to text
+* Converts voice to text via Web Speech API
 * Sends to the backend just like typed input
 
 ---
@@ -62,9 +64,9 @@ Press the mic icon and speak your query.
 
 Visit `/history`:
 
-* Stores local query + response (summary + table + graph)
+* Stores every query + response (summary + table + graph) locally
 * Fully frontend-driven using LocalStorage
-* Clicking opens a modal to review past results
+* Click any entry to open a modal and review past results
 
 ---
 
@@ -74,87 +76,95 @@ Visit `/history`:
 flowchart TD
   A[User Query] --> B[FastAPI /query endpoint]
   B --> C{LangChain Router}
-  C -->|SQL| D[MySQL]
-  C -->|Mongo| E[MongoDB Atlas]
+  C -->|SQL keywords| D[MySQL]
+  C -->|Mongo keywords| E[MongoDB Atlas]
   C -->|Fallback| F[Gemini SQL Generator]
   D --> G[Gemini Formatter]
   E --> G
   F --> G
-  G --> H[JSON: Summary + Table + Chart]
+  G --> H[JSON: Summary + Table + Chart URL]
   H --> I[Frontend Response]
 ```
 
 ### Key Endpoints
 
-* `POST /query`
-  Handles natural language input → routes to DB → formats → returns insights
-
-* `GET /insights`
-  Returns:
-
-  * 3 LocalStored recently search query data
-  * 3 Gemini-generated charts based on business logic
+* `POST /query` — Handles natural language input → routes to DB → formats with Gemini → returns JSON
+* `GET /insights` — Returns historical MySQL charts + Gemini-generated LLM charts (cached)
 
 ---
 
-
 ## 🧩 LangChain Usage
 
-* **LangChain** decides routing: SQL vs Mongo vs fallback
-* **LangChain** components:
-
-  * Custom chains for SQL generation & formatting
-  * Agent for fallback logic
+* **LangChain Router** — Rule-based keyword routing: SQL vs Mongo vs Gemini fallback
+* **LangChain Components:**
+  * `ChatGoogleGenerativeAI` for Gemini LLM calls
+  * Custom chains for SQL generation & response formatting
+  * Fallback agent for queries not matched by rules
 
 ---
 
 ## 📁 File Structure
 
-```bash
-Wealth-Assistant/
+```
+AI_Wealth_Management/
 ├── backend/
-│   ├── main.py
+│   ├── main.py                   # FastAPI app, /query and /insights endpoints
+│   ├── data.py                   # Original MongoDB seed script (legacy)
+│   ├── seed_mongo.py             # Full MongoDB seed script (30 clients, C001–C030)
+│   ├── cached_insights.json      # Cache file for LLM-generated insights
+│   ├── .env.example              # Template for environment variables
 │   ├── chains/
-│   │   ├── query_router.py
-│   │   ├── sql_generator.py
-│   │   ├── response_formatter.py
-|   |   ├── mysql_query.py
-|   |   ├── mongo_query.py
+│   │   ├── query_router.py       # Routes query to MySQL or MongoDB
+│   │   ├── sql_generator.py      # Generates SQL from natural language via Gemini
+│   │   ├── response_formatter.py # Formats DB results into JSON via Gemini
+│   │   ├── mysql_query.py        # Predefined MySQL query handlers
+│   │   └── mongo_query.py        # Predefined MongoDB query handlers
 │   ├── db/
-│   │   ├── mysql_handler.py
-│   │   └── mongo_handler.py
+│   │   ├── mysql_handler.py      # MySQL connection
+│   │   └── mongo_handler.py      # MongoDB connection
 │   └── utils/
-│       ├── sql_runner.py
+│       └── sql_runner.py         # Executes SQL + serializes Decimal/date types
 │
 ├── frontend/
-│   ├── components/
-│   │   ├── Navbar.jsx
-│   │   ├── Layout.jsx
-│   │   ├── HistoryModal.jsx
-│   │   ├── QueryForm.jsx
-│   │   ├── ResultCard.jsx
-│   ├── pages/
-│   │   ├── Home.jsx
-│   │   ├── History.jsx
-│   │   └── Insights.jsx
-│   └── App.jsx
-│   └── api.js
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── Layout.jsx
+│   │   │   ├── HistoryModal.jsx
+│   │   │   ├── QueryForm.jsx
+│   │   │   └── ResultCard.jsx
+│   │   ├── pages/
+│   │   │   ├── Home.jsx
+│   │   │   ├── History.jsx
+│   │   │   └── InsightsPage.jsx
+│   │   ├── App.jsx
+│   │   └── api.js
+│   ├── .env.example              # Template for frontend environment variables
+│   └── package.json
 │
-├── .env
-├── README.md
+├── .gitignore
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
 ## 🧪 Sample Queries
 
-```bash
-Q: "Top 5 clients by portfolio value"
+```
+# MySQL-based (financial/transaction data)
+"Top 5 clients by portfolio value"
+"Which clients hold Infosys stock?"
+"Who manages the highest portfolio?"
+"Transaction history for C001"
+"Which clients have the most diversified portfolio?"
 
-Q: "Which clients are managed by Ashima?"
-
-Q: "Explain what SIP means"
-
+# MongoDB-based (client profiles)
+"Clients with high risk appetite"
+"Clients from Mumbai"
+"Who prefers investing in Gold?"
+"Clients who invest in Crypto"
+"Clients with low risk appetite"
 ```
 
 ---
@@ -163,8 +173,10 @@ Q: "Explain what SIP means"
 
 ### 🧮 MySQL
 
+Run the following SQL to create the required database and tables:
+
 ```sql
-CREATE DATABASE portfolio_db;
+CREATE DATABASE IF NOT EXISTS portfolio_db;
 USE portfolio_db;
 
 CREATE TABLE transactions (
@@ -184,78 +196,166 @@ CREATE TABLE relationship_managers (
 
 ### 🍃 MongoDB
 
-* Example document:
+* Create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+* Add your connection URI to `backend/.env` (see setup below)
+* Run the seed script to populate the `clients` collection:
+
+```bash
+cd backend
+python seed_mongo.py
+```
+
+Example client document:
 
 ```json
 {
   "client_id": "C001",
-  "name": "John Doe",
+  "name": "Arjun Kapoor",
   "address": "Mumbai",
-  "risk_appetite": "High",
-  "investment_preferences": ["Equity", "Crypto"]
+  "risk_appetite": "high",
+  "investment_preferences": ["Equity", "Stocks"],
+  "relationship_manager": "Ashima Sharma"
 }
 ```
-run the data.py file to directly import sample_data into your DB.
+
+---
+
+## ⚙️ Prerequisites
+
+Before running the project, make sure you have:
+
+| Tool | Version | Notes |
+|------|---------|-------|
+| Python | 3.10+ | [Download](https://www.python.org/downloads/) |
+| Node.js | 18+ | [Download](https://nodejs.org/) |
+| MySQL | 8.0+ | Must be running locally |
+| MongoDB Atlas | Free tier | [Sign up](https://www.mongodb.com/cloud/atlas) |
+| Google Gemini API Key | — | [Get free key](https://aistudio.google.com/app/apikey) |
+
+> ⚠️ **Gemini Free Tier Limit:** The free tier allows **5 requests per minute** per model. Space queries at least 12 seconds apart. To remove this limit, enable billing on your Google AI account.
 
 ---
 
 ## 🚀 Getting Started
 
-### 1️⃣ Backend Setup
+### 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/Anmol954/AI_Wealth_Management.git
+cd AI_Wealth_Management
+```
+
+### 2️⃣ Backend Setup
 
 ```bash
 cd backend
-Create virtual environment if required!
+
+# Create and activate virtual environment
 python -m venv venv
-In Command Prompt:
+
+# On Command Prompt:
 venv\Scripts\activate
-In PowerShell (if Command Prompt fails):
+
+# On PowerShell:
 .\venv\Scripts\Activate.ps1
 
+# Install dependencies
 pip install -r requirements.txt
+```
 
-# Create .env file with:
-# GOOGLE_API_KEY=
+**Create your `.env` file** (copy from template):
+
+```bash
+copy .env.example .env
+```
+
+Then fill in your values in `backend/.env`:
+
+```env
+GOOGLE_API_KEY=your_google_gemini_api_key
 MYSQL_HOST=localhost
 MYSQL_USER=root
-MYSQL_PASSWORD=
-MYSQL_DB=portfolio_db
-MONGO_URI=YOUR_MONGO_URI
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DATABASE=portfolio_db
+MONGO_URI=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/portfolio-db?retryWrites=true&w=majority&appName=Cluster0
+```
 
+> ⚠️ If your MongoDB password contains special characters (e.g. `@`, `#`), URL-encode them. For example, `@` → `%40`.
 
+**Create MySQL tables** (run once):
+
+```bash
+mysql -u root -p portfolio_db < ../schema.sql
+```
+
+Or paste the SQL from the [Database Setup](#-database-setup) section above into your MySQL client.
+
+**Seed MongoDB data** (run once):
+
+```bash
+python seed_mongo.py
+```
+
+**Start the backend server:**
+
+```bash
 python main.py
 ```
 
-### 2️⃣ Frontend Setup
+Backend will be live at: `http://localhost:8000`
+
+---
+
+### 3️⃣ Frontend Setup
 
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Create your .env file
+copy .env.example .env
+```
+
+The `frontend/.env` file should contain:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+**Start the frontend dev server:**
+
+```bash
 npm run dev
 ```
+
+Frontend will be live at: `http://localhost:5173`
 
 ---
 
 ## 💡 Future Enhancements
 
-| Feature                   | Description                                               |
-| ------------------------- | --------------------------------------------------------- |
-| ✨ Model Context Protocol  | Use LangChain's MCP to support persistent multi-turn chat |
-| 🔐 Auth & Role Access     | Secure dashboard by user types (client, manager)          |
-| 📈 Real-time Market Data  | Integrate with stock APIs for live portfolio updates      |
-| 📄 PDF Upload + Parsing   | Extract and ingest documents for context in RAG           |
-| 📤 Export Insights        | Save insights as PDF or CSV                               |
-| 📱 Mobile App Integration | Build companion app using React Native                    |
+| Feature                    | Description                                               |
+| -------------------------- | --------------------------------------------------------- |
+| ✨ Model Context Protocol   | Use LangChain's MCP to support persistent multi-turn chat |
+| 🔐 Auth & Role Access      | Secure dashboard by user types (client, manager)          |
+| 📈 Real-time Market Data   | Integrate with stock APIs for live portfolio updates      |
+| 📄 PDF Upload + Parsing    | Extract and ingest documents for context in RAG           |
+| 📤 Export Insights         | Save insights as PDF or CSV                               |
+| 📱 Mobile App Integration  | Build companion app using React Native                    |
+| 🔄 WebSocket Live Updates  | Real-time query results via WebSocket                     |
 
 ---
 
 ## 🙋 Why This Project Stands Out
 
-* ✅ Gemini + LangChain 
-* ✅ SQL & NoSQL support with intelligent routing
-* ✅ RAG-enhanced LLM responses
-* ✅ AI-generated chart suggestions
-* ✅ Modern UI with historical memory
+* ✅ Gemini 3.5 Flash + LangChain for intelligent NLQ
+* ✅ Dual-database support: SQL & NoSQL with smart routing
+* ✅ AI-generated chart suggestions with QuickChart.io
+* ✅ Modern React UI with voice search & query history
+* ✅ Retry logic for graceful Gemini rate-limit handling
+* ✅ Fully modular and extensible architecture
 
 ---
 
@@ -266,4 +366,3 @@ Feel free to reach out if you want to collaborate, extend this project, or hire 
 **Built with ❤️ by Anmol Madhav**
 
 ---
-
